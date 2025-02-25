@@ -1,152 +1,355 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from "react";
+import { Search } from "lucide-react";
+import { projects } from "../portfolio/projects";
+import { motion, AnimatePresence } from "framer-motion";
 
-const projects = [
-  {
-    title: 'Sentiment Analysis with BERT',
-    description: 'A project implementing sentiment analysis using BERT.',
-    technologies: ['Python', 'BERT', 'NLP'],
-    image: 'https://via.placeholder.com/300',
-    details:
-      'This project focuses on analyzing text sentiment using the BERT transformer model. It demonstrates the use of fine-tuning for downstream NLP tasks.',
-  },
-  {
-    title: 'Text Summarization with Transformers',
-    description: 'A tool to summarize large text using Transformer models.',
-    technologies: ['Transformers', 'Hugging Face', 'Python'],
-    image: 'https://via.placeholder.com/300',
-    details:
-      'Using Hugging Face’s pre-trained models, this tool generates summaries for lengthy articles, showcasing advanced transformer usage.',
-  },
-  {
-    title: 'Named Entity Recognition (NER)',
-    description: 'An NLP application to extract named entities from text.',
-    technologies: ['SpaCy', 'NLP', 'Python'],
-    image: 'https://via.placeholder.com/300',
-    details:
-      'This project utilizes SpaCy for Named Entity Recognition to extract meaningful entities like names, dates, and organizations.',
-  },
-  {
-    title: 'Custom Chatbot Development',
-    description: 'A chatbot using NLP techniques and deep learning.',
-    technologies: ['Dialogflow', 'NLP', 'TensorFlow'],
-    image: 'https://via.placeholder.com/300',
-    details:
-      'An AI-driven chatbot built with Dialogflow, integrated with TensorFlow for enhanced conversational capabilities.',
-  },
-];
+// Modal Component
+function Modal({ project, onClose }) {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black opacity-50"
+        onClick={onClose}
+      ></div>
+      {/* Modal Content */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg z-10 max-w-md w-full">
+        <img
+          src={project.image}
+          alt={project.title}
+          className="w-full h-40 object-cover rounded-md mb-4"
+        />
+        <h2 className="text-xl font-bold mb-2">{project.title}</h2>
+        <p className="mb-4 text-gray-700 dark:text-gray-300">
+          {project.description}
+        </p>
+        <p className="mb-4 text-gray-600 dark:text-gray-400">
+          <span className="font-semibold">Tech Stack:</span> {project.techStack}
+        </p>
+        <a
+          href={project.link}
+          className="inline-block px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        >
+          Go to Project
+        </a>
+        <button
+          onClick={onClose}
+          className="ml-4 inline-block px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
 
-export default function PortfolioPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTech, setSelectedTech] = useState('All');
-  const [activeProject, setActiveProject] = useState(null);
+// ProjectCard for Feedforward Neural Networks
+function ProjectCard({ project, onViewProject }) {
+  return (
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md flex flex-col transform transition duration-300 hover:scale-105 hover:shadow-xl">
+      <img
+        src={project.image}
+        alt={project.title}
+        className="w-full h-32 object-cover rounded-md"
+      />
+      <h3 className="text-blue-700 font-bold mt-2">{project.title}</h3>
+      <p className="text-gray-600 dark:text-gray-300 text-sm">{project.provider}</p>
+      <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">{project.type}</p>
+      <button
+        onClick={() => onViewProject(project)}
+        className="mt-auto px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+      >
+        View Project
+      </button>
+    </div>
+  );
+}
 
-  const filteredProjects = projects.filter((project) => {
-    const matchesSearch = project.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTech = selectedTech === 'All' || project.technologies.includes(selectedTech);
-    return matchesSearch && matchesTech;
-  });
+// DeepLearningProjectCard for other sections
+function DeepLearningProjectCard({ project, onViewProject }) {
+  return (
+    <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg shadow-lg flex flex-col transform transition duration-300 hover:scale-105 hover:shadow-2xl">
+      <img
+        src={project.image}
+        alt={project.title}
+        className="w-full h-32 object-cover rounded-md"
+      />
+      <h3 className="text-blue-700 font-bold mt-2">{project.title}</h3>
+      <p className="text-gray-700 dark:text-gray-300 text-sm">{project.provider}</p>
+      <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">{project.type}</p>
+      <button
+        onClick={() => onViewProject(project)}
+        className="mt-auto px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+      >
+        View Details
+      </button>
+    </div>
+  );
+}
+
+// Reusable component for each project section with a "Show More/Less" button
+function ProjectSection({ title, projects, CardComponent, emptyMessage, onViewProject }) {
+  const [showAll, setShowAll] = useState(false);
+  const visibleProjects = showAll ? projects : projects.slice(0, 4);
 
   return (
-    <section className="py-20 bg-gradient-to-r from-blue-50 to-gray-50">
-      <div className="container mx-auto px-6">
-        <h2 className="text-4xl font-extrabold text-center text-gray-800 mb-12">
-          NLP Projects Portfolio
-        </h2>
-
-        {/* Search and Filters */}
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-8">
-          <input
-            type="text"
-            placeholder="Search projects..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full sm:w-1/2 p-3 mb-4 sm:mb-0 border border-gray-300 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-blue-600"
-          />
-          <div className="flex flex-wrap gap-2">
-            {['All', 'Python', 'BERT', 'Transformers', 'Hugging Face', 'SpaCy', 'Dialogflow', 'TensorFlow'].map(
-              (tech) => (
-                <button
-                  key={tech}
-                  onClick={() => setSelectedTech(tech)}
-                  className={`px-4 py-2 text-sm font-medium rounded-full shadow-md ${
-                    selectedTech === tech
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white text-gray-800 border border-gray-300'
-                  } hover:bg-blue-500 hover:text-white transition-all`}
-                >
-                  {tech}
-                </button>
-              )
-            )}
-          </div>
-        </div>
-
-        {/* Project Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredProjects.length > 0 ? (
-            filteredProjects.map((project) => (
-              <div
-                key={project.title}
-                className="bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-xl transform transition-transform hover:scale-105"
-                onClick={() => setActiveProject(project)}
-              >
-                <img
-                  src={project.image}
-                  alt={project.title}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="p-6">
-                  <h3 className="text-2xl font-bold text-gray-800 mb-3">{project.title}</h3>
-                  <p className="text-gray-600 mb-4">{project.description}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {project.technologies.map((tech) => (
-                      <span
-                        key={tech}
-                        className="bg-blue-100 text-blue-600 px-2 py-1 rounded-full text-sm"
-                      >
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-center text-gray-500 col-span-full">
-              No projects match your search or filter criteria.
-            </p>
-          )}
-        </div>
-
-        {/* Modal */}
-        {activeProject && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-            <div className="bg-white w-11/12 md:w-2/3 lg:w-1/2 p-6 rounded-lg shadow-lg relative">
-              <button
-                onClick={() => setActiveProject(null)}
-                className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
-              >
-                ✖
-              </button>
-              <img
-                src={activeProject.image}
-                alt={activeProject.title}
-                className="w-full h-48 object-cover rounded-lg mb-4"
-              />
-              <h3 className="text-3xl font-bold text-gray-800 mb-4">{activeProject.title}</h3>
-              <p className="text-gray-600 mb-4">{activeProject.details}</p>
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700"
-                onClick={() => setActiveProject(null)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
+    <div className="mb-10">
+      <h2 className="text-blue-600 font-extrabold text-2xl mb-4">{title}</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+        {projects.length > 0 ? (
+          visibleProjects.map((project) => (
+            <CardComponent
+              key={project.title}
+              project={project}
+              onViewProject={onViewProject}
+            />
+          ))
+        ) : (
+          <p className="text-gray-600 dark:text-gray-300">{emptyMessage}</p>
         )}
       </div>
-    </section>
+      {projects.length > 4 && (
+        <div className="flex justify-start mt-4">
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            {showAll ? "Show Less" : "Show More"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function DeepLearningProjects() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [activeSection, setActiveSection] = useState("all");
+  const [darkMode, setDarkMode] = useState(false);
+
+  // Toggle dark mode and update document class
+  const toggleDarkMode = () => {
+    setDarkMode((prev) => !prev);
+  };
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [darkMode]);
+
+  // Filter projects based on search term
+  const filteredProjects = projects.filter((project) =>
+    project.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Separate the projects by type for each section
+  const projectProjects = filteredProjects.filter(
+    (project) => project.type === "FNN"
+  );
+  const specializationProjects = filteredProjects.filter(
+    (project) => project.type === "CNN"
+  );
+  const rnnProjects = filteredProjects.filter(
+    (project) => project.type === "RNN"
+  );
+  const transProjects = filteredProjects.filter(
+    (project) => project.type === "Transformers"
+  );
+  const ganProjects = filteredProjects.filter(
+    (project) => project.type === "GenerativeModels"
+  );
+  const hmProjects = filteredProjects.filter(
+    (project) => project.type === "HybridModels"
+  );
+  const gnnProjects = filteredProjects.filter(
+    (project) => project.type === "GNN"
+  );
+  const reinforcementProjects = filteredProjects.filter(
+    (project) => project.type === "reinforcement"
+  );
+
+  // Data for each section
+  const sectionData = [
+    {
+      title: "Feedforward Neural Networks",
+      type: "Project",
+      projects: projectProjects,
+      CardComponent: ProjectCard,
+      emptyMessage: "No projects found.",
+    },
+    {
+      title: "CONVULUTIONAL NEURAL NETWORKS",
+      type: "Specialization",
+      projects: specializationProjects,
+      CardComponent: DeepLearningProjectCard,
+      emptyMessage: "No specializations found.",
+    },
+    {
+      title: "RECURRENT NEURAL NETWORKS",
+      type: "RNN",
+      projects: rnnProjects,
+      CardComponent: DeepLearningProjectCard,
+      emptyMessage: "No projects found.",
+    },
+    {
+      title: "TRANSFORMERS",
+      type: "Transformers",
+      projects: transProjects,
+      CardComponent: DeepLearningProjectCard,
+      emptyMessage: "No projects found.",
+    },
+    {
+      title: "GENERATIVE MODELS",
+      type: "GenerativeModels",
+      projects: ganProjects,
+      CardComponent: DeepLearningProjectCard,
+      emptyMessage: "No projects found.",
+    },
+    {
+      title: "REINFORCEMENT MODELS",
+      type: "reinforcement",
+      projects: reinforcementProjects,
+      CardComponent: DeepLearningProjectCard,
+      emptyMessage: "No projects found.",
+    },
+    {
+      title: "GRAPH NEURAL NETWORKS",
+      type: "GNN",
+      projects: gnnProjects,
+      CardComponent: DeepLearningProjectCard,
+      emptyMessage: "No projects found.",
+    },
+    {
+      title: "HYBRID MODELS",
+      type: "HybridModels",
+      projects: hmProjects,
+      CardComponent: DeepLearningProjectCard,
+      emptyMessage: "No projects found.",
+    },
+  ];
+
+  // Navigation sections for filtering
+  const navSections = [
+    { label: "All", value: "all" },
+    { label: "Feedforward Neural Networks", value: "Project" },
+    { label: "CONVULUTIONAL NEURAL NETWORKS", value: "Specialization" },
+    { label: "RECURRENT NEURAL NETWORKS", value: "RNN" },
+    { label: "TRANSFORMERS", value: "Transformers" },
+    { label: "GENERATIVE MODELS", value: "GenerativeModels" },
+    { label: "REINFORCEMENT MODELS", value: "reinforcement" },
+    { label: "GRAPH NEURAL NETWORKS", value: "GNN" },
+    { label: "HYBRID MODELS", value: "HybridModels" },
+  ];
+
+  const handleViewProject = (project) => {
+    setSelectedProject(project);
+  };
+
+  const closeModal = () => {
+    setSelectedProject(null);
+  };
+
+  return (
+    <>
+      {/* Global Custom Scrollbar Styles */}
+      <style jsx global>{`
+        /* Custom Scrollbar Styles for WebKit browsers */
+        ::-webkit-scrollbar {
+          width: 12px;
+        }
+        ::-webkit-scrollbar-track {
+          background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+          background-color: #888;
+          border-radius: 10px;
+          border: 3px solid #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background-color: #555;
+        }
+        /* Firefox scrollbar styling */
+        body {
+          scrollbar-width: thin;
+          scrollbar-color: #888 #f1f1f1;
+        }
+      `}</style>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white p-6"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.3 }}
+        >
+          {/* Header Navbar with Project Title, Search (Dark mode toggle removed) */}
+          <nav className="bg-white dark:bg-gray-800 shadow-md p-4 mb-6 border border-gray-300 dark:border-gray-700 rounded-lg">
+            <div className="flex justify-between items-center">
+              {/* Project Title */}
+              <h1 className="text-blue-500 font-extrabold text-2xl">Projects</h1>
+              <div className="flex items-center gap-4">
+                {/* Search Bar */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search for a project"
+                    className="border rounded-full px-4 py-2 w-64 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  <Search className="absolute right-3 top-2.5 text-gray-400" size={18} />
+                </div>
+                {/* Dark mode toggle button has been removed */}
+              </div>
+            </div>
+            {/* Navigation Filters */}
+            <div className="mt-4 flex flex-wrap gap-4">
+              {navSections.map((sec) => (
+                <button
+                  key={sec.value}
+                  onClick={() => setActiveSection(sec.value)}
+                  className={`px-6 py-2 rounded-full text-sm font-medium uppercase tracking-wider transition-colors duration-200 ${
+                    activeSection === sec.value
+                      ? "bg-blue-500 text-white shadow"
+                      : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                  }`}
+                >
+                  {sec.label}
+                </button>
+              ))}
+            </div>
+          </nav>
+
+          {/* Render Project Sections based on active filter */}
+          {sectionData.map((section) => {
+            if (activeSection === "all" || activeSection === section.type) {
+              return (
+                <ProjectSection
+                  key={section.type}
+                  title={section.title}
+                  projects={section.projects}
+                  CardComponent={section.CardComponent}
+                  emptyMessage={section.emptyMessage}
+                  onViewProject={handleViewProject}
+                />
+              );
+            }
+            return null;
+          })}
+
+          {/* Modal for Project Details */}
+          {selectedProject && (
+            <Modal project={selectedProject} onClose={closeModal} />
+          )}
+        </motion.div>
+      </AnimatePresence>
+    </>
   );
 }
